@@ -9,6 +9,7 @@ class UserResponseSchema(BaseModel):
     name: str
     email: str
     id:int
+   
 
 
 class LoginSchema(BaseModel):

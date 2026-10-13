@@ -1,5 +1,5 @@
 from sqlalchemy import Column,Integer,String    
-from src.db import Base
+from src.User.db import Base
 
 class TaskModel(Base):
     __tablename__ = "user_tasks"
@@ -8,3 +8,5 @@ class TaskModel(Base):
     name = Column(String, nullable=False)
     email = Column(String, unique=True, index=True, nullable=False)
     hashed_password = Column(String, nullable=False)
+
+    role = Column(String, default="user", nullable=False)

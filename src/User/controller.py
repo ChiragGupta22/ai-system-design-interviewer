@@ -1,12 +1,12 @@
-from src.schema import UserSchema,LoginSchema
+from src.User.schema import UserSchema,LoginSchema
 from sqlalchemy.orm import Session
-from src.model import TaskModel
+from src.User.model import TaskModel
 from fastapi import HTTPException ,status,Request
 from pwdlib import PasswordHash
-from src.settings import settings
+from src.User.settings import settings
 from datetime import datetime,timedelta
 import jwt
-from jwt.exceptions import InvalidTokenError
+
 
 password_hash = PasswordHash.recommended()
 
@@ -50,19 +50,28 @@ def register(body: UserSchema, db: Session):
     }
 
 
+
 def login_user(body: LoginSchema, db: Session):
-        user = db.query(TaskModel).filter(
-            TaskModel.email == body.email
-        ).first()
-        if not user:
-             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,detail="You entered wrong email")
+    user = db.query(TaskModel).filter(
+        TaskModel.email == body.email
+    ).first()
 
-        if not verify_password(body.password, user.hashed_password):
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,detail="You entered wrong email")
-        exp_time = datetime.now() + timedelta(minutes=settings.EXP_TIME)
-        token = jwt.encode({"_id":user.id,"exp":exp_time},settings.SECRETE_KEY,settings.ALGORITHAM)
+    if not user or not verify_password(
+        body.password, user.hashed_password
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid email or password"
+        )
 
+    exp_time = datetime.now() + timedelta(
+        minutes=settings.EXP_TIME
+    )
 
-        return{"token",token}
+    token = jwt.encode(
+        {"_id": user.id, "exp": exp_time},
+        settings.SECRETE_KEY,
+        algorithm=settings.ALGORITHAM
+    )
 
-
+    return {"token": token}
