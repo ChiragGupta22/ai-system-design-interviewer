@@ -10,4 +10,5 @@ class Interview(Base):
         ForeignKey("user_tasks.id", ondelete="CASCADE")
     )
     project_name = Column(String)
+    duration = Column(Integer, default=30)
     status = Column(String, default="in_progress")

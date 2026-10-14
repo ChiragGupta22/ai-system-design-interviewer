@@ -26,3 +26,11 @@ def get_one_task(task_id:int,db = Depends(get_db),user:TaskModel = Depends(is_au
 @task_routes.delete("/delete_tasks/{task_id}")
 def delete_task(task_id:int,db = Depends(get_db),user:TaskModel = Depends(is_authenticated)):  
     return controller.delete_task(task_id,db,user)
+
+@task_routes.post("/start")
+def start_interview(
+    body: InterviewSchema,
+    db=Depends(get_db),
+    user: TaskModel = Depends(is_authenticated)
+):
+    return controller.start_interview(body, db, user)
