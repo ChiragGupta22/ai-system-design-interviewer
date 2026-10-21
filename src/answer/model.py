@@ -1,16 +1,25 @@
 
-from pydantic import BaseModel, Field, ConfigDict
+from sqlalchemy import Column, Integer, Text, ForeignKey
+from src.User.db import Base
 
 
-class AnswerCreate(BaseModel):
-    question_id: int
-    answer_text: str = Field(min_length=1)
+class Answer(Base):
+    __tablename__ = "answers"
 
+    id = Column(Integer, primary_key=True, index=True)
 
-class AnswerResponse(BaseModel):
-    id: int
-    question_id: int
-    user_id: int
-    answer_text: str
+    question_id = Column(
+        Integer,
+        ForeignKey("questions.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True
+    )
 
-    model_config = ConfigDict(from_attributes=True)
+    user_id = Column(
+        Integer,
+        ForeignKey("user_tasks.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True
+    )
+
+    answer_text = Column(Text, nullable=False)

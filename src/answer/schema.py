@@ -4,7 +4,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 class AnswerCreate(BaseModel):
     question_id: int
-    answer_text: str = Field(min_length=1)
+    answer_text: str = Field(min_length=15)
 
 
 class AnswerResponse(BaseModel):

@@ -1,41 +1,20 @@
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
+from src.answer import controller
+from src.answer.schema import AnswerCreate
 from src.User.db import get_db
-from src.question.models import Question
-from src.answer.model import Answer
-from src.answer.schema import AnswerCreate, AnswerResponse
 from src.User.utils import is_authenticated
+from src.User.model import TaskModel
+
+ans_routes = APIRouter(prefix="/answers", tags=["Answers"])
 
 
-router = APIRouter(prefix="/answers", tags=["Answers"])
-
-
-@router.post("/", response_model=AnswerResponse)
+@ans_routes.post("/create")
 def create_answer(
     body: AnswerCreate,
     db: Session = Depends(get_db),
-    user=Depends(is_authenticated),
+    user: TaskModel = Depends(is_authenticated)
 ):
-    question = db.query(Question).filter(
-        Question.id == body.question_id
-    ).first()
-
-    if not question:
-        raise HTTPException(
-            status_code=404,
-            detail="Question not found"
-        )
-
-    answer = Answer(
-        question_id=question.id,
-        user_id=user.id,
-        answer_text=body.answer_text
-    )
-
-    db.add(answer)
-    db.commit()
-    db.refresh(answer)
-
-    return answer
+    return controller.create_answer(body, db, user)
