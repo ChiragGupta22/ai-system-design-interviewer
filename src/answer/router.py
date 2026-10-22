@@ -8,7 +8,7 @@ from src.User.db import get_db
 from src.User.utils import is_authenticated
 from src.User.model import TaskModel
 
-ans_routes = APIRouter(prefix="/answers", tags=["Answers"])
+ans_routes = APIRouter(prefix="/answers")
 
 
 @ans_routes.post("/create")

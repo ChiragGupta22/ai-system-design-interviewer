@@ -4,14 +4,13 @@ from sqlalchemy.orm import Session
 
 from src.question.models import Question
 from src.answer.model import Answer
-from src.User.model import TaskModel
-from src.answer.schema import AnswerCreate
+from src.interview.models import Interview
 
 
 def create_answer(
-    body: AnswerCreate,
+    body,
     db: Session,
-    user: TaskModel
+    user
 ):
     question = (
         db.query(Question)
@@ -25,35 +24,38 @@ def create_answer(
             detail="Question not found"
         )
 
-    # Check whether the question belongs to this user
-    from src.interview.models import Interview
-
+    
     interview = (
         db.query(Interview)
-        .filter(Interview.id == question.interview_id)
+        .filter(
+            Interview.id == question.interview_id,
+            Interview.user_id == user.id
+        )
         .first()
     )
 
-    if not interview or interview.user_id != user.id:
+    if not interview:
         raise HTTPException(
-            status_code=404,
-            detail="Question not found"
+            status_code=403,
+            detail="You cannot answer this question"
         )
 
-    answer = Answer(
-        question_id=question.id,
-        user_id=user.id,
-        answer_text=body.answer_text
-    )
+    try:
+        answer = Answer(
+            question_id=question.id,
+            user_id=user.id,
+            answer_text=body.answer_text
+        )
 
-    db.add(answer)
-    db.commit()
-    db.refresh(answer)
+        db.add(answer)
+        db.commit()
+        db.refresh(answer)
 
-    return {
-        "message": "Answer saved successfully",
-        "id": answer.id,
-        "question_id": answer.question_id,
-        "user_id": answer.user_id,
-        "answer_text": answer.answer_text
-    }
+        return answer
+
+    except Exception:
+        db.rollback()
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to save answer"
+        )
