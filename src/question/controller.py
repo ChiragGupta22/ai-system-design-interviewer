@@ -223,8 +223,9 @@ Rules:
         db.rollback()
         raise
 
-    except Exception:
+    except Exception as e:
         db.rollback()
+        print("Actual error:", repr(e))
         raise HTTPException(
             status_code=500,
             detail="Question generation or database save failed"

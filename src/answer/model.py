@@ -1,5 +1,5 @@
 
-from sqlalchemy import Column, Integer, Text, ForeignKey
+from sqlalchemy import Column, Integer,Float, Text, ForeignKey
 from src.User.db import Base
 
 
@@ -23,3 +23,4 @@ class Answer(Base):
     )
 
     answer_text = Column(Text, nullable=False)
+    marks = Column(Float, nullable=True)

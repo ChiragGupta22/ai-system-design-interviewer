@@ -1,13 +1,18 @@
-from fastapi import Request,HTTPException,status,Depends
-from src.User.settings import settings
+
+from fastapi import Request, HTTPException, status, Depends
 from sqlalchemy.orm import Session
 import jwt
-from src.User.db import get_db
-from jwt.exceptions import InvalidTokenError
-from src.User.model import TaskModel
 from jwt.exceptions import InvalidTokenError
 
-def is_authenticated(req: Request, db: Session = Depends(get_db)):
+from src.User.settings import settings
+from src.User.db import get_db
+from src.User.model import TaskModel
+
+
+def is_authenticated(
+    req: Request,
+    db: Session = Depends(get_db)
+):
     try:
         auth_header = req.headers.get("Authorization")
 
@@ -27,6 +32,12 @@ def is_authenticated(req: Request, db: Session = Depends(get_db)):
 
         user_id = data.get("_id")
 
+        if user_id is None:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid token payload"
+            )
+
         user = db.query(TaskModel).filter(
             TaskModel.id == user_id
         ).first()
@@ -34,7 +45,7 @@ def is_authenticated(req: Request, db: Session = Depends(get_db)):
         if not user:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="You are unauthorized"
+                detail="User not found"
             )
 
         return user
@@ -44,3 +55,14 @@ def is_authenticated(req: Request, db: Session = Depends(get_db)):
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid or expired token"
         )
+
+
+# Admin authorize
+def is_admin(user: TaskModel = Depends(is_authenticated)):
+    if user.role != "admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin access required"
+        )
+
+    return user

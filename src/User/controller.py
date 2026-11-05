@@ -34,7 +34,8 @@ def register(body: UserSchema, db: Session):
     new_user = TaskModel(
         name=body.name,
         email=body.email,
-        hashed_password=hashed_password
+        hashed_password=hashed_password,
+        
     )
 
     db.add(new_user)
@@ -43,9 +44,10 @@ def register(body: UserSchema, db: Session):
 
     return {
         "msg": "Registration successful",
-         "id": new_user.id,
+        "id": new_user.id,
         "name": new_user.name,
         "email": new_user.email,
+        
         
     }
 
