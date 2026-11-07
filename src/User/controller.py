@@ -1,7 +1,7 @@
 from src.User.schema import UserSchema,LoginSchema
 from sqlalchemy.orm import Session
 from src.User.model import TaskModel
-from fastapi import HTTPException ,status,Request,Response
+from fastapi import HTTPException ,status,Request
 from pwdlib import PasswordHash
 from src.User.settings import settings
 from datetime import datetime,timedelta
@@ -77,11 +77,3 @@ def login_user(body: LoginSchema, db: Session):
     )
 
     return {"token": token}
-
-
-def logout_user(response:Response):
-    response.delete_cookie("access_token")
-
-    return{
-        "msg": "Logout successful"
-    }
