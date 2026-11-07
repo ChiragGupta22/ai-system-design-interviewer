@@ -2,18 +2,17 @@
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
-from src.question.models import Question
+from src.question.models import Question, ExpectedConcept
 from src.answer.model import Answer
 from src.interview.models import Interview
 
 from src.evaluation.bi_encoder import (
-    evaluate_answer as evaluate_bi_encoder
+    evaluate_answer as evaluate_groq
 )
 
 
 def create_answer(body, db: Session, user):
     try:
-        # Check whether the question exists
         question = (
             db.query(Question)
             .filter(Question.id == body.question_id)
@@ -26,7 +25,6 @@ def create_answer(body, db: Session, user):
                 detail="Question not found"
             )
 
-        # Verify interview ownership
         interview = (
             db.query(Interview)
             .filter(
@@ -42,7 +40,6 @@ def create_answer(body, db: Session, user):
                 detail="You cannot answer this question"
             )
 
-        # Prevent duplicate answers
         existing_answer = (
             db.query(Answer)
             .filter(
@@ -58,26 +55,44 @@ def create_answer(body, db: Session, user):
                 detail="You have already answered this question"
             )
 
-        # Get expected answer from the Question model
         expected_answer = question.expected_answer
 
         if not expected_answer or not expected_answer.strip():
             raise HTTPException(
                 status_code=422,
-                detail="Expected answer is not available for this question"
+                detail="Expected answer is not available"
             )
 
         candidate_answer = body.answer_text.strip()
 
-        # Evaluate using BiEncoder
-        bi_result = evaluate_bi_encoder(
-            candidate_answer,
-            expected_answer
+        if not candidate_answer:
+            raise HTTPException(
+                status_code=422,
+                detail="Answer cannot be empty"
+            )
+
+        concepts = (
+            db.query(ExpectedConcept)
+            .filter(
+                ExpectedConcept.question_id == question.id
+            )
+            .all()
         )
 
-        final_marks = bi_result["marks"]
+        expected_concepts = [
+            item.concept for item in concepts
+        ]
 
-        # Save the candidate's answer
+        # Evaluate using Groq
+        groq_result = evaluate_groq(
+            candidate_answer=candidate_answer,
+            expected_answer=expected_answer,
+            expected_concepts=expected_concepts,
+            max_marks=10
+        )
+
+        final_marks = groq_result["marks"]
+
         answer = Answer(
             question_id=question.id,
             user_id=user.id,
@@ -89,7 +104,6 @@ def create_answer(body, db: Session, user):
         db.commit()
         db.refresh(answer)
 
-        # Return answer and evaluation results
         return {
             "message": "Answer saved and evaluated successfully",
             "answer": {
@@ -99,7 +113,7 @@ def create_answer(body, db: Session, user):
                 "answer_text": answer.answer_text
             },
             "evaluation": {
-                "bi_encoder": bi_result,
+                "groq": groq_result,
                 "final_marks": answer.marks
             }
         }
@@ -108,8 +122,10 @@ def create_answer(body, db: Session, user):
         db.rollback()
         raise
 
-    except Exception:
+    except Exception as e:
         db.rollback()
+        print("Answer evaluation error:", repr(e))
+
         raise HTTPException(
             status_code=500,
             detail="Failed to save and evaluate answer"
