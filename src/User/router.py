@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends,status,Request
+from fastapi import APIRouter, Depends,status,Request,Response
 from sqlalchemy.orm import Session
 from src.User.db import get_db
 from src.User.schema import UserSchema , UserResponseSchema,LoginSchema
@@ -26,3 +26,11 @@ def login(body: LoginSchema, db: Session = Depends(get_db)):
 )
 def is_auth(user=Depends(is_authenticated)):
     return user
+
+
+@user_routes.post("/logout", status_code=status.HTTP_200_OK)
+def logout(
+    response: Response,
+    user=Depends(is_authenticated)
+):
+    return controller.logout_user(response)
