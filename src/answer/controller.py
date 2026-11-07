@@ -10,14 +10,10 @@ from src.evaluation.bi_encoder import (
     evaluate_answer as evaluate_bi_encoder
 )
 
-from src.evaluation.cross_encoder import (
-    evaluate_answer as evaluate_cross_encoder
-)
-
 
 def create_answer(body, db: Session, user):
     try:
-        #  Check whether the question exists
+        # Check whether the question exists
         question = (
             db.query(Question)
             .filter(Question.id == body.question_id)
@@ -30,7 +26,7 @@ def create_answer(body, db: Session, user):
                 detail="Question not found"
             )
 
-        #  Verify interview ownership
+        # Verify interview ownership
         interview = (
             db.query(Interview)
             .filter(
@@ -46,7 +42,7 @@ def create_answer(body, db: Session, user):
                 detail="You cannot answer this question"
             )
 
-        #  Prevent duplicate answers
+        # Prevent duplicate answers
         existing_answer = (
             db.query(Answer)
             .filter(
@@ -62,7 +58,7 @@ def create_answer(body, db: Session, user):
                 detail="You have already answered this question"
             )
 
-        #  Get expected answer from the Question model
+        # Get expected answer from the Question model
         expected_answer = question.expected_answer
 
         if not expected_answer or not expected_answer.strip():
@@ -73,22 +69,13 @@ def create_answer(body, db: Session, user):
 
         candidate_answer = body.answer_text.strip()
 
-        #  Evaluate using both encoders
+        # Evaluate using BiEncoder
         bi_result = evaluate_bi_encoder(
             candidate_answer,
             expected_answer
         )
 
-        cross_result = evaluate_cross_encoder(
-            candidate_answer,
-            expected_answer
-        )
-        # Calculate final marks from both encoders      
-        final_marks = round(
-            (bi_result["marks"] + cross_result["marks"]) / 2,
-    2
-)
-
+        final_marks = bi_result["marks"]
 
         # Save the candidate's answer
         answer = Answer(
@@ -102,7 +89,7 @@ def create_answer(body, db: Session, user):
         db.commit()
         db.refresh(answer)
 
-        #  Return answer and evaluation results
+        # Return answer and evaluation results
         return {
             "message": "Answer saved and evaluated successfully",
             "answer": {
@@ -113,7 +100,6 @@ def create_answer(body, db: Session, user):
             },
             "evaluation": {
                 "bi_encoder": bi_result,
-                "cross_encoder": cross_result,
                 "final_marks": answer.marks
             }
         }
@@ -128,4 +114,3 @@ def create_answer(body, db: Session, user):
             status_code=500,
             detail="Failed to save and evaluate answer"
         )
-
