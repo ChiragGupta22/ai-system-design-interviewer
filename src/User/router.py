@@ -29,8 +29,5 @@ def is_auth(user=Depends(is_authenticated)):
 
 
 @user_routes.post("/logout", status_code=status.HTTP_200_OK)
-def logout(
-    response: Response,
-    user=Depends(is_authenticated)
-):
-    return controller.logout_user(response)
+def logout(user=Depends(is_authenticated)):
+    return controller.logout_user()

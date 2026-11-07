@@ -79,9 +79,7 @@ def login_user(body: LoginSchema, db: Session):
     return {"token": token}
 
 
-def logout_user(response: Response):
-    response.delete_cookie("access_token")
-
+def logout_user():
     return {
         "msg": "Logout successful"
     }
