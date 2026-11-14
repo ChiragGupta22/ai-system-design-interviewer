@@ -19,6 +19,9 @@ print("STEP 6: Question router imported", flush=True)
 
 from src.answer.router import ans_routes
 print("STEP 7: Answer router imported", flush=True)
+from src.answer.router import ans_routes
+
+print("STEP 7B: Answer router imported", flush=True)
 
 app = FastAPI()
 
