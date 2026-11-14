@@ -8,7 +8,9 @@ from src.User.settings import groq_client, GROQ_MODEL
 from src.User.model import TaskModel
 from src.interview.models import Interview
 from src.question.models import Question, ExpectedConcept
+from src.question.embending_models import ExpectedAnswerEmbedding
 from src.answer.model import Answer
+from src.evaluation.bi_encoder import generate_embedding
 
 
 def generate_question(
@@ -178,7 +180,7 @@ Rules:
         if len(concepts) < 2:
             raise ValueError("Groq returned too few expected concepts")
 
-        # 6. Save question and expected answer
+        # 6. Save question first to get its ID
         question = Question(
             interview_id=interview.id,
             question_text=question_text.strip(),
@@ -188,7 +190,20 @@ Rules:
         db.add(question)
         db.flush()
 
-        # 7. Save expected concepts
+        # 7. Generate expected answer embedding
+        expected_embedding = generate_embedding(
+            question.expected_answer
+        )
+
+        # 8. Save expected answer embedding in pgvector
+        db.add(
+            ExpectedAnswerEmbedding(
+                question_id=question.id,
+                embedding=expected_embedding
+            )
+        )
+
+        # 9. Save expected concepts
         for concept in concepts:
             db.add(
                 ExpectedConcept(
@@ -197,10 +212,11 @@ Rules:
                 )
             )
 
+        # 10. Commit all records together
         db.commit()
         db.refresh(question)
 
-        # 8. Default response: candidate sees only question
+        # 11. Prepare response
         response_data = {
             "completed": False,
             "question_number": len(previous_questions) + 1,
@@ -210,7 +226,6 @@ Rules:
             "question_text": question.question_text
         }
 
-        # Include reference data only when explicitly requested
         if show_expected_answer:
             response_data["expected_answer"] = (
                 question.expected_answer

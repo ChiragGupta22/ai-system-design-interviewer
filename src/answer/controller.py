@@ -2,17 +2,20 @@
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
-from src.question.models import Question, ExpectedConcept
+from src.evaluation.bi_encoder import generate_embedding
+from src.question.embending_models import ExpectedAnswerEmbedding
+from src.question.models import Question
 from src.answer.model import Answer
 from src.interview.models import Interview
 
-from src.evaluation.bi_encoder import (
-    evaluate_answer as evaluate_groq
+from src.evaluation.cross_encoder import (
+    evaluate_answer as evaluate_cross_encoder
 )
 
 
 def create_answer(body, db: Session, user):
     try:
+        # Check whether the question exists
         question = (
             db.query(Question)
             .filter(Question.id == body.question_id)
@@ -25,6 +28,7 @@ def create_answer(body, db: Session, user):
                 detail="Question not found"
             )
 
+        # Verify interview ownership
         interview = (
             db.query(Interview)
             .filter(
@@ -40,6 +44,7 @@ def create_answer(body, db: Session, user):
                 detail="You cannot answer this question"
             )
 
+        # Prevent duplicate answers
         existing_answer = (
             db.query(Answer)
             .filter(
@@ -55,6 +60,7 @@ def create_answer(body, db: Session, user):
                 detail="You have already answered this question"
             )
 
+        # Get expected answer
         expected_answer = question.expected_answer
 
         if not expected_answer or not expected_answer.strip():
@@ -68,31 +74,73 @@ def create_answer(body, db: Session, user):
         if not candidate_answer:
             raise HTTPException(
                 status_code=422,
-                detail="Answer cannot be empty"
+                detail="Candidate answer cannot be empty"
             )
 
-        concepts = (
-            db.query(ExpectedConcept)
+        # Generate candidate embedding
+        candidate_embedding = generate_embedding(candidate_answer)
+
+        # Check expected embedding exists
+        expected_embedding = (
+            db.query(ExpectedAnswerEmbedding)
             .filter(
-                ExpectedConcept.question_id == question.id
+                ExpectedAnswerEmbedding.question_id == question.id
             )
-            .all()
+            .first()
         )
 
-        expected_concepts = [
-            item.concept for item in concepts
-        ]
+        if not expected_embedding:
+            raise HTTPException(
+                status_code=404,
+                detail="Expected answer embedding not found"
+            )
 
-        # Evaluate using Groq
-        groq_result = evaluate_groq(
-            candidate_answer=candidate_answer,
-            expected_answer=expected_answer,
-            expected_concepts=expected_concepts,
-            max_marks=10
+        # Calculate cosine similarity using pgvector
+        distance = (
+            db.query(
+                ExpectedAnswerEmbedding.embedding.cosine_distance(
+                    candidate_embedding
+                )
+            )
+            .filter(
+                ExpectedAnswerEmbedding.question_id == question.id
+            )
+            .scalar()
         )
 
-        final_marks = groq_result["marks"]
+        if distance is None:
+            raise HTTPException(
+                status_code=404,
+                detail="Expected answer embedding not found"
+            )
 
+        similarity = 1 - float(distance)
+        similarity = max(0.0, min(1.0, similarity))
+
+        # Bi-Encoder evaluation
+        bi_result = {
+            "similarity_score": round(similarity, 4),
+            "marks": round(similarity * 10, 2),
+            "max_marks": 10
+        }
+
+        # Selective Cross-Encoder evaluation
+        if similarity >= 0.85:
+            cross_result = None
+            final_marks = bi_result["marks"]
+
+        else:
+            cross_result = evaluate_cross_encoder(
+                candidate_answer,
+                expected_answer
+            )
+
+            final_marks = round(
+                (bi_result["marks"] + cross_result["marks"]) / 2,
+                2
+            )
+
+        # Save candidate answer
         answer = Answer(
             question_id=question.id,
             user_id=user.id,
@@ -113,7 +161,8 @@ def create_answer(body, db: Session, user):
                 "answer_text": answer.answer_text
             },
             "evaluation": {
-                "groq": groq_result,
+                "bi_encoder": bi_result,
+                "cross_encoder": cross_result,
                 "final_marks": answer.marks
             }
         }
@@ -124,9 +173,8 @@ def create_answer(body, db: Session, user):
 
     except Exception as e:
         db.rollback()
-        print("Answer evaluation error:", repr(e))
-
+        print("ANSWER ERROR:", repr(e))
         raise HTTPException(
             status_code=500,
-            detail="Failed to save and evaluate answer"
+            detail=str(e)
         )
