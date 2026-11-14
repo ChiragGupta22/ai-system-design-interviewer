@@ -9,7 +9,7 @@ from src.answer.router import ans_routes
 
 
 
-Base.metadata.create_all(engine)
+# Base.metadata.create_all(engine)
 
 app = FastAPI()
 
