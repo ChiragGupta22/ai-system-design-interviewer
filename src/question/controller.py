@@ -190,19 +190,19 @@ Rules:
         db.add(question)
         db.flush()
 
-        # 7. Generate expected answer embedding
-        from src.evaluation.bi_encoder import generate_embedding
-        expected_embedding = generate_embedding(
-            question.expected_answer
-        )
+        # # 7. Generate expected answer embedding
+        # from src.evaluation.bi_encoder import generate_embedding
+        # expected_embedding = generate_embedding(
+        #     question.expected_answer
+        # )
 
-        # 8. Save expected answer embedding in pgvector
-        db.add(
-            ExpectedAnswerEmbedding(
-                question_id=question.id,
-                embedding=expected_embedding
-            )
-        )
+        # # 8. Save expected answer embedding in pgvector
+        # db.add(
+        #     ExpectedAnswerEmbedding(
+        #         question_id=question.id,
+        #         embedding=expected_embedding
+        #     )
+        # )
 
         # 9. Save expected concepts
         for concept in concepts:
@@ -240,8 +240,8 @@ Rules:
         raise
 
     except Exception as e:
-        db.rollback()
-        print("Actual error:", repr(e))
+        db.rollback()   
+        print("Actual error:", repr(e),flush=True)
         raise HTTPException(
             status_code=500,
             detail="Question generation or database save failed"
