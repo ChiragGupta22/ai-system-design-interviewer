@@ -13,19 +13,17 @@ def is_authenticated(
     req: Request,
     db: Session = Depends(get_db)
 ):
-    auth_header = req.headers.get("Authorization")
-
-    print("AUTH HEADER EXISTS:", bool(auth_header))
-
-    if not auth_header or not auth_header.startswith("Bearer "):
-        raise HTTPException(
-            status_code=401,
-            detail="Missing or invalid Authorization header"
-        )
-
-    token = auth_header.split(" ", 1)[1].strip()
-
     try:
+        auth_header = req.headers.get("Authorization")
+
+        if not auth_header or not auth_header.startswith("Bearer "):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="You are unauthorized"
+            )
+
+        token = auth_header.split(" ", 1)[1].strip()
+
         data = jwt.decode(
             token,
             settings.SECRETE_KEY,
@@ -34,30 +32,30 @@ def is_authenticated(
 
         user_id = data.get("_id")
 
-        print("JWT DECODE SUCCESS")
-        print("USER ID:", user_id)
+        if user_id is None:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid token payload"
+            )
 
         user = db.query(TaskModel).filter(
             TaskModel.id == user_id
         ).first()
 
-        print("USER FOUND:", bool(user))
-
         if not user:
             raise HTTPException(
-                status_code=401,
+                status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="User not found"
             )
 
         return user
 
-    except InvalidTokenError as e:
-        print("JWT ERROR:", repr(e))
-
+    except InvalidTokenError:
         raise HTTPException(
-            status_code=401,
+            status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid or expired token"
         )
+
 
 # Admin authorize
 def is_admin(user: TaskModel = Depends(is_authenticated)):
