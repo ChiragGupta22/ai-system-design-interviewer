@@ -2,15 +2,10 @@
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
-from src.evaluation.bi_encoder import generate_embedding
 from src.question.embending_models import ExpectedAnswerEmbedding
 from src.question.models import Question
 from src.answer.model import Answer
 from src.interview.models import Interview
-
-from src.evaluation.cross_encoder import (
-    evaluate_answer as evaluate_cross_encoder
-)
 
 
 def create_answer(body, db: Session, user):
@@ -78,6 +73,8 @@ def create_answer(body, db: Session, user):
             )
 
         # Generate candidate embedding
+        from src.evaluation.bi_encoder import generate_embedding
+
         candidate_embedding = generate_embedding(candidate_answer)
 
         # Check expected embedding exists
@@ -130,6 +127,10 @@ def create_answer(body, db: Session, user):
             final_marks = bi_result["marks"]
 
         else:
+            from src.evaluation.cross_encoder import (
+                evaluate_answer as evaluate_cross_encoder
+            )
+
             cross_result = evaluate_cross_encoder(
                 candidate_answer,
                 expected_answer
