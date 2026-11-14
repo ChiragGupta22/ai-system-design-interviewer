@@ -10,7 +10,7 @@ from src.interview.models import Interview
 from src.question.models import Question, ExpectedConcept
 from src.question.embending_models import ExpectedAnswerEmbedding
 from src.answer.model import Answer
-from src.evaluation.bi_encoder import generate_embedding
+
 
 
 def generate_question(
@@ -191,6 +191,7 @@ Rules:
         db.flush()
 
         # 7. Generate expected answer embedding
+        from src.evaluation.bi_encoder import generate_embedding
         expected_embedding = generate_embedding(
             question.expected_answer
         )
