@@ -1,16 +1,31 @@
 
 from sentence_transformers import SentenceTransformer, util
 
-# Load the model once
-model = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")
+# Model will load only when first needed
+model = None
 
 
-# Generate embedding
+def get_model():
+    global model
+
+    if model is None:
+        print("Loading Bi-Encoder model...", flush=True)
+
+        model = SentenceTransformer(
+            "sentence-transformers/all-MiniLM-L6-v2",
+            device="cpu"
+        )
+
+        print("Bi-Encoder model loaded!", flush=True)
+
+    return model
+
+
 def generate_embedding(text: str):
     if not text or not text.strip():
         raise ValueError("Text is required")
 
-    embedding = model.encode(
+    embedding = get_model().encode(
         text,
         convert_to_numpy=True
     )
@@ -26,12 +41,14 @@ def evaluate_answer(
     if not candidate_answer.strip() or not expected_answer.strip():
         raise ValueError("Both answers are required")
 
-    candidate_embedding = model.encode(
+    current_model = get_model()
+
+    candidate_embedding = current_model.encode(
         candidate_answer,
         convert_to_tensor=True
     )
 
-    expected_embedding = model.encode(
+    expected_embedding = current_model.encode(
         expected_answer,
         convert_to_tensor=True
     )
