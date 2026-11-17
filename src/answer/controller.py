@@ -73,7 +73,7 @@ def create_answer(body, db: Session, user):
             )
 
         # Generate candidate embedding
-        from src.evaluation.bi_encoder import generate_embedding
+        from src.evaluation.hf_client import generate_embedding
 
         candidate_embedding = generate_embedding(candidate_answer)
 
@@ -127,11 +127,9 @@ def create_answer(body, db: Session, user):
             final_marks = bi_result["marks"]
 
         else:
-            from src.evaluation.cross_encoder import (
-                evaluate_answer as evaluate_cross_encoder
-            )
+            from src.evaluation.hf_client import evaluate_with_cross_encoder
 
-            cross_result = evaluate_cross_encoder(
+            cross_result = evaluate_with_cross_encoder(
                 candidate_answer,
                 expected_answer
             )
@@ -153,7 +151,8 @@ def create_answer(body, db: Session, user):
         db.commit()
         db.refresh(answer)
 
-        return {
+        
+        response = {
             "message": "Answer saved and evaluated successfully",
             "answer": {
                 "id": answer.id,
@@ -163,10 +162,15 @@ def create_answer(body, db: Session, user):
             },
             "evaluation": {
                 "bi_encoder": bi_result,
-                "cross_encoder": cross_result,
                 "final_marks": answer.marks
             }
         }
+
+        if cross_result is not None:
+            response["evaluation"]["cross_encoder"] = cross_result
+
+        return response
+        
 
     except HTTPException:
         db.rollback()

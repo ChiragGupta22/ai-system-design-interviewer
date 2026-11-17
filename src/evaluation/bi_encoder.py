@@ -29,6 +29,8 @@ def generate_embedding(text: str):
         text,
         convert_to_numpy=True
     )
+    print("Embedding shape:", embedding.shape)
+    print("Embedding dimensions:", len(embedding))
 
     return embedding.tolist()
 

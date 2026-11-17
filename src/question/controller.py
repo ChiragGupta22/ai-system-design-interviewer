@@ -191,7 +191,7 @@ Rules:
         db.flush()
 
         # 7. Generate expected answer embedding
-        from src.evaluation.bi_encoder import generate_embedding
+        from src.evaluation.hf_client import generate_embedding
         expected_embedding = generate_embedding(
             question.expected_answer
         )
