@@ -10,13 +10,14 @@ from src.answer.router import ans_routes
 from src.admin.routes import admin_routes
 
 app = FastAPI()
-Base.metadata.create_all(bind=engine)
+
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "https://frontend-system-design-interviewer.vercel.app",
-        "http://localhost:5173"
+        "http://localhost:5173",
+        
     ],
     allow_credentials=True,
     allow_methods=["*"],
