@@ -7,8 +7,10 @@ from src.User.router import user_routes
 from src.interview.router import task_routes
 from src.question.router import ques_routes
 from src.answer.router import ans_routes
+from src.admin.routes import admin_routes
 
 app = FastAPI()
+Base.metadata.create_all(bind=engine)
 
 app.add_middleware(
     CORSMiddleware,
@@ -29,3 +31,4 @@ app.include_router(ques_routes)
 app.include_router(task_routes)
 app.include_router(user_routes)
 app.include_router(ans_routes)
+app.include_router(admin_routes)
