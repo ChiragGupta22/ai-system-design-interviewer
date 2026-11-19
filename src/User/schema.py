@@ -10,6 +10,7 @@ class UserResponseSchema(BaseModel):
     name: str
     email: str
     id:int
+    role: str
     
    
 
